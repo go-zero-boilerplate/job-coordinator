@@ -16,9 +16,10 @@ import (
 )
 
 type testingJob struct {
-	id          string
-	hostDetails host_details.HostDetails
-	tempJobFs   afero.Fs
+	id                    string
+	hostDetails           host_details.HostDetails
+	tempJobFs             afero.Fs
+	additionalCachedSpecs *AdditionalCacheSpecs
 }
 
 func (t *testingJob) Id() string                            { return t.id }
@@ -37,6 +38,10 @@ func (t *testingJob) ExportFiles(fileSystem afero.Fs) error {
 		}
 	}
 	return nil
+}
+
+func (t *testingJob) AdditionalCachedSpecs() *AdditionalCacheSpecs {
+	return t.additionalCachedSpecs
 }
 
 func (t *testingJob) exportTempFile(fileSystem afero.Fs, name string) error {
@@ -61,7 +66,12 @@ func TestExportWorker(t *testing.T) {
 
 		tempJobFs := afero.NewBasePathFs(afero.NewOsFs(), tempJobDir)
 		jobId := "testing-export-id-1"
-		job := &testingJob{tempJobFs: tempJobFs, id: jobId, hostDetails: hostDetails}
+		job := &testingJob{
+			tempJobFs:             tempJobFs,
+			id:                    jobId,
+			hostDetails:           hostDetails,
+			additionalCachedSpecs: nil, //TODO: Implement test for testing this caching...
+		}
 
 		worker := &export{}
 

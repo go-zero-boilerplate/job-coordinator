@@ -48,6 +48,18 @@ func (e *export) runJob(jobCtx *jobContext, job Job) error {
 		jobCtx.logger.Info("Successfully ensured export dir gone")
 	}
 
+	additional := job.AdditionalCachedSpecs()
+	if additional != nil {
+		//TODO: This `afero.FullBaseFsPath` is used in multiple spots, perhaps centralize?
+		localFullCacheDir := afero.FullBaseFsPath(additional.LocalFS.(*afero.BasePathFs), "")
+		remoteFullCacheDir := additional.RemoteCacheFS.GetFullPath()
+		err = jobCtx.remoteComms.Upload(localFullCacheDir, remoteFullCacheDir)
+		if err != nil {
+			jobCtx.logger.WithError(err).WithField("local-cache-dir", localFullCacheDir).WithField("remote-cache-dir", remoteFullCacheDir).Error("Upload cache failed")
+			return err
+		}
+	}
+
 	if err := job.ExportFiles(jobCtx.pendingJobFileSystem); err != nil {
 		jobCtx.logger.WithError(err).Error("Export files failed")
 		return err
