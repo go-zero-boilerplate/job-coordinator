@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-zero-boilerplate/osvisitors"
 
@@ -13,7 +14,9 @@ import (
 
 	gpClient "github.com/golang-devops/go-psexec/client"
 
+	"github.com/go-zero-boilerplate/job-coordinator/logger"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/host_details"
+	"github.com/golang-devops/go-psexec/services/filepath_summary"
 )
 
 type Facade interface {
@@ -27,18 +30,24 @@ type Facade interface {
 	StartDetached(workingDir string, commandLine ...string) (*StartedDetails, error)
 	// Run() (*Result, error)
 
+	CheckPathsAreInSync(localPath, remotePath string) (bool, error)
+
 	Upload(localPath, remotePath string) error
 	DownloadDir(remotePath, localPath string) error
 
 	ReadFileContent(remotePath string) ([]byte, error)
 	UploadFileContent(remotePath string, content []byte) error
 
+	Move(oldRemotePath, newRemotePath string) error
+
 	Delete(remotePath string) error
 }
 
 type facade struct {
-	gopsexecClient *gpClient.Client
-	hostDetails    host_details.HostDetails
+	logger                 logger.Logger
+	gopsexecClient         *gpClient.Client
+	hostDetails            host_details.HostDetails
+	filepathSummaryService filepath_summary.Service
 }
 
 func (f *facade) newGoPsExecSession() (gpClient.Session, error) {
@@ -132,11 +141,119 @@ func (f *facade) StartDetached(workingDir string, commandLine ...string) (*Start
 	return f.startExecRequest(detached, commandLine[0], workingDir, commandLine[1:]...)
 }
 
+func (f *facade) timesAreEqual(t1, t2 time.Time) bool {
+	if t1.Equal(t2) {
+		return true
+	}
+
+	timestampFormat := "2006-01-02 15:04:05"
+	timestamp1 := t1.Format(timestampFormat)
+	timestamp2 := t2.Format(timestampFormat)
+	if timestamp1 == timestamp2 {
+		return true
+	}
+
+	return false
+}
+
+func (f *facade) fileSummariesAreInSync(logger logger.Logger, localSummary, remoteSummary *filepath_summary.FileSummary) bool {
+	if !f.timesAreEqual(localSummary.ModTime, remoteSummary.ModTime) {
+		logger.WithField("local-time", localSummary.ModTime).WithField("remote-time", remoteSummary.ModTime).Debug("File times out of sync")
+		return false
+	}
+	if localSummary.Checksum.HexString() != remoteSummary.Checksum.HexString() {
+		logger.WithField("local-checksum", localSummary.Checksum.HexString()).WithField("remote-checksum", remoteSummary.Checksum.HexString()).Debug("File checksums out of sync")
+		return false
+	}
+
+	return true
+}
+
+func (f *facade) dirSummariesAreInSync(logger logger.Logger, localSummary, remoteSummary *filepath_summary.DirSummary) bool {
+	if len(localSummary.FlattenedFileSummaries) > len(remoteSummary.FlattenedFileSummaries) {
+		logger.
+			WithField("local-count", len(localSummary.FlattenedFileSummaries)).
+			WithField("remote-count", len(remoteSummary.FlattenedFileSummaries)).
+			Debug("Remote has less files than local")
+		return false
+	}
+
+	for _, localFileSummary := range localSummary.FlattenedFileSummaries {
+		var foundRemoteSummary *filepath_summary.FileSummary
+		for _, remoteFileSummary := range remoteSummary.FlattenedFileSummaries {
+			if remoteFileSummary.HaveSamePath(localFileSummary) {
+				foundRemoteSummary = remoteFileSummary
+				break
+			}
+		}
+		if foundRemoteSummary == nil {
+			logger.WithField("local-file", localFileSummary.RelativePath).Debug("Dir out of sync - remote file missing")
+			return false
+		}
+
+		subLogger := logger.WithField("local-file", localFileSummary.RelativePath).WithField("remote-file", foundRemoteSummary.RelativePath)
+		if !f.fileSummariesAreInSync(subLogger, localFileSummary, foundRemoteSummary) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (f *facade) CheckPathsAreInSync(localPath, remotePath string) (bool, error) {
+	session, err := f.newGoPsExecSession()
+	if err != nil {
+		return false, err
+	}
+	logger := f.logger.WithField("local-path", localPath).WithField("remote-path", remotePath)
+
+	info, err := os.Stat(localPath)
+	if err != nil {
+		return false, fmt.Errorf("Unable to obtain stats of path '%s', error: %s", localPath, err.Error())
+	}
+
+	sessionFS := session.FileSystem()
+	if info.IsDir() {
+		localDirSummary, err := f.filepathSummaryService.GetDirSummary(localPath)
+		if err != nil {
+			return false, err
+		}
+
+		remoteDirSummary, err := sessionFS.DirSummary(remotePath)
+		if err != nil {
+			return false, err
+		}
+
+		if f.dirSummariesAreInSync(logger, localDirSummary, remoteDirSummary) {
+			logger.Debug("Dirs are in sync")
+			return true, nil
+		}
+	} else {
+		baseDir := "" //TODO: refer to go-psexec todo `TODO: 2016-05-09 20:57` for why this is a hacky solution
+		localFileSummary, err := f.filepathSummaryService.GetFileSummary(baseDir, localPath)
+		if err != nil {
+			return false, err
+		}
+
+		remoteFileSummary, err := sessionFS.FileSummary(remotePath)
+		if err != nil {
+			return false, err
+		}
+
+		if f.fileSummariesAreInSync(logger, localFileSummary, remoteFileSummary) {
+			logger.Debug("Files are in sync")
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (f *facade) Upload(localPath, remotePath string) error {
 	session, err := f.newGoPsExecSession()
 	if err != nil {
 		return err
 	}
+
 	info, err := os.Stat(localPath)
 	if err != nil {
 		return fmt.Errorf("Unable to obtain stats of path '%s', error: %s", localPath, err.Error())
@@ -203,6 +320,18 @@ func (f *facade) UploadFileContent(remotePath string, content []byte) error {
 	err = session.FileSystem().UploadTar(tarProvider, remotePath, isDir)
 	if err != nil {
 		return fmt.Errorf("Unable to upload local file '%s' to remote file '%s', error: %s", tempFile.Name(), remotePath, err.Error())
+	}
+	return nil
+}
+
+func (f *facade) Move(oldRemotePath, newRemotePath string) error {
+	session, err := f.newGoPsExecSession()
+	if err != nil {
+		return err
+	}
+
+	if err := session.FileSystem().Move(oldRemotePath, newRemotePath); err != nil {
+		return fmt.Errorf("Unable to move remote path from '%s' to '%s', error: %s", oldRemotePath, newRemotePath, err.Error())
 	}
 	return nil
 }

@@ -11,6 +11,8 @@ import (
 
 	"github.com/go-zero-boilerplate/job-coordinator/context"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/remote_comms_facade"
+	"github.com/golang-devops/go-psexec/services/encoding/checksums"
+	"github.com/golang-devops/go-psexec/services/filepath_summary"
 )
 
 func NewContext(virtualFileSystem bool) (*context.Context, error) {
@@ -40,7 +42,11 @@ func newContext(pendingLocalFileSystem, completedLocalFileSystem afero.Fs) (*con
 	//TODO: This will break on non-windows remote machines. Perhaps we must have a binary per OS (win32, win64, linux32, linux64, etc) and ensure that file exists locally before trying to copy it to the remote
 	localExecLoggerBinPath := os.ExpandEnv(`$GOPATH/bin/exec-logger.exe`)
 
-	remoteCommsFactory := remote_comms_facade.NewFactory(goPsexecClient)
+	checksumsSvc := checksums.New()
+	filePathSummariesSvc := filepath_summary.New(checksumsSvc)
+	remoteCommsFactory := remote_comms_facade.NewFactory(logger, goPsexecClient, filePathSummariesSvc)
+
+	services := context.NewServices(checksumsSvc, filePathSummariesSvc)
 
 	return context.New(
 		logger,
@@ -48,5 +54,6 @@ func newContext(pendingLocalFileSystem, completedLocalFileSystem afero.Fs) (*con
 		completedLocalFileSystem,
 		localExecLoggerBinPath,
 		remoteCommsFactory,
+		services,
 	), nil
 }
