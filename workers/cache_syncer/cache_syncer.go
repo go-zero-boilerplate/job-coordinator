@@ -46,7 +46,8 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 		WithField("remote-old-dir", remoteOldCacheDir).
 		WithField("remote-final-dir", remoteFinalCacheDir)
 
-	if areInSync, err := jobCtx.remoteComms.CheckPathsAreInSync(localFullCacheDir, remoteFinalCacheDir); err != nil {
+	logger.Debug("Checking if paths are in sync")
+	if areInSync, err := jobCtx.remoteComms.CheckPathsAreInSync(logger, localFullCacheDir, remoteFinalCacheDir); err != nil {
 		logger.WithError(err).Error("Cannot ensure paths are in sync")
 		//dont return here, it just means we will copy the files again even though they are in sync
 	} else if areInSync {

@@ -30,7 +30,7 @@ type Facade interface {
 	StartDetached(workingDir string, commandLine ...string) (*StartedDetails, error)
 	// Run() (*Result, error)
 
-	CheckPathsAreInSync(localPath, remotePath string) (bool, error)
+	CheckPathsAreInSync(logger logger.Logger, localPath, remotePath string) (bool, error)
 
 	Upload(localPath, remotePath string) error
 	DownloadDir(remotePath, localPath string) error
@@ -200,18 +200,19 @@ func (f *facade) dirSummariesAreInSync(logger logger.Logger, localSummary, remot
 	return true
 }
 
-func (f *facade) CheckPathsAreInSync(localPath, remotePath string) (bool, error) {
+func (f *facade) CheckPathsAreInSync(logger logger.Logger, localPath, remotePath string) (bool, error) {
 	session, err := f.newGoPsExecSession()
 	if err != nil {
 		return false, err
 	}
-	logger := f.logger.WithField("local-path", localPath).WithField("remote-path", remotePath)
+	logger = logger.WithField("local-path", localPath).WithField("remote-path", remotePath)
 
 	info, err := os.Stat(localPath)
 	if err != nil {
 		return false, fmt.Errorf("Unable to obtain stats of path '%s', error: %s", localPath, err.Error())
 	}
 
+	//TODO: We can perhaps make this two-phase checking so that we first check on `ModTime.Format("")` and `Size()`. The question is do we actually need the checksum?
 	sessionFS := session.FileSystem()
 	if info.IsDir() {
 		localDirSummary, err := f.filepathSummaryService.GetDirSummary(localPath)
