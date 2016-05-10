@@ -62,11 +62,6 @@ func startProcess(ctx *context.Context, dummyJobId string, dummyCliFlagInterval 
 	details.job = job
 
 	remoteComms := ctx.RemoteCommsFactory.NewFacade(hostDetails)
-	remoteTempDir, err := remoteComms.GetTempDir()
-	if err != nil {
-		details.err = err
-		return
-	}
 
 	remoteOsType, err := remoteComms.GetOsType()
 	if err != nil {
@@ -75,7 +70,7 @@ func startProcess(ctx *context.Context, dummyJobId string, dummyCliFlagInterval 
 	}
 
 	job.remoteOsType = remoteOsType
-	job.remoteJobFS = hostDetails.RemoteFileSystemFactory().New(remoteTempDir, job.Id())
+	job.remoteJobFS = hostDetails.RemoteFileSystemFactory().New(job.Id())
 	details.remoteJobDirToDelete = job.remoteJobFS.GetFullJobDir()
 
 	//Remove dir before starting

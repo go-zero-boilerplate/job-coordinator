@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-zero-boilerplate/osvisitors"
 
+	"github.com/golang-devops/go-psexec/shared/dtos"
 	"github.com/golang-devops/go-psexec/shared/tar_io"
 
 	gpClient "github.com/golang-devops/go-psexec/client"
@@ -38,6 +39,7 @@ type Facade interface {
 	ReadFileContent(remotePath string) ([]byte, error)
 	UploadFileContent(remotePath string, content []byte) error
 
+	Stats(remotePath string) (*dtos.StatsDto, error)
 	Move(oldRemotePath, newRemotePath string) error
 
 	Delete(remotePath string) error
@@ -323,6 +325,20 @@ func (f *facade) UploadFileContent(remotePath string, content []byte) error {
 		return fmt.Errorf("Unable to upload local file '%s' to remote file '%s', error: %s", tempFile.Name(), remotePath, err.Error())
 	}
 	return nil
+}
+
+func (f *facade) Stats(remotePath string) (*dtos.StatsDto, error) {
+	session, err := f.newGoPsExecSession()
+	if err != nil {
+		return nil, err
+	}
+
+	statsDTO, err := session.FileSystem().Stats(remotePath)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot determine stats for remote path '%s', error: %s", remotePath, err.Error())
+	}
+
+	return statsDTO, nil
 }
 
 func (f *facade) Move(oldRemotePath, newRemotePath string) error {

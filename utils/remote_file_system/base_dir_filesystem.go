@@ -2,9 +2,9 @@ package remote_file_system
 
 import "path/filepath"
 
-func NewBaseDirFileSystem(remoteTempDir, jobId string) FileSystem {
-	baseDir := filepath.Join(remoteTempDir, jobId)
-	return &baseDirFileSystem{baseDir: baseDir}
+func NewBaseDirFileSystem(baseDir, jobId string) FileSystem {
+	baseJobDir := filepath.Join(baseDir, jobId)
+	return &baseDirFileSystem{baseDir: baseJobDir}
 }
 
 type baseDirFileSystem struct {

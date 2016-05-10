@@ -30,6 +30,11 @@ func (t *testingJob) createTempFile() error {
 	return afero.WriteFile(t.fileSystem, "tmp-cop-to-file-1.txt", fileContent, 0655)
 }
 
+func (t *testingJob) RemoteAdditionalCacheSpec() *RemoteAdditionalCacheSpec {
+	//TODO: Add tests
+	return nil
+}
+
 func TestExportWorker(t *testing.T) {
 	Convey("Testing the copy-to worker\n", t, func() {
 		ctx, err := testing_utils.NewContext(

@@ -8,20 +8,15 @@ import (
 	"github.com/francoishill/afero"
 	"github.com/go-zero-boilerplate/job-coordinator/testing_utils"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/host_details"
-	"github.com/go-zero-boilerplate/job-coordinator/utils/remote_file_system"
 )
 
 type testingJob struct {
-	hostDetails        host_details.HostDetails
-	localSourceCacheFS afero.Fs
-	remoteDestCacheFS  remote_file_system.CacheFileSystem
+	hostDetails     host_details.HostDetails
+	localJobCacheFS afero.Fs
 }
 
 func (t *testingJob) HostDetails() host_details.HostDetails { return t.hostDetails }
-func (t *testingJob) LocalSourceCacheFS() afero.Fs          { return t.localSourceCacheFS }
-func (t *testingJob) RemoteDestCacheFS() remote_file_system.CacheFileSystem {
-	return t.remoteDestCacheFS
-}
+func (t *testingJob) LocalJobCacheFS() afero.Fs             { return t.localJobCacheFS }
 
 func TestCacheSyncerWorker(t *testing.T) {
 	Convey("Testing the cache-syncer worker", t, func() {

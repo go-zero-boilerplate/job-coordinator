@@ -1,3 +1,3 @@
 package testing_constants
 
-const ExpectedGoPsexecVersion = "0.0.9"
+const ExpectedGoPsexecVersion = "0.0.10"

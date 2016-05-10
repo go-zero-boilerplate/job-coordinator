@@ -22,15 +22,11 @@ type copyTo struct{}
 func (c *copyTo) getJobContext(ctx *context.Context, pendingJobFileSystem afero.Fs, job Job) (*jobContext, error) {
 	hostDetails := job.HostDetails()
 	remoteComms := ctx.RemoteCommsFactory.NewFacade(hostDetails)
-	remoteTempDir, err := remoteComms.GetTempDir()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get remote temp dir for host '%s', error: %s", hostDetails.HostName(), err.Error())
-	}
 
 	//TODO: This `afero.FullBaseFsPath` is used in multiple spots, perhaps centralize?
 	localJobExportDir := afero.FullBaseFsPath(pendingJobFileSystem.(*afero.BasePathFs), "")
 
-	remoteFS := hostDetails.RemoteFileSystemFactory().New(remoteTempDir, job.Id())
+	remoteFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
 	remoteJobPath := remoteFS.GetFullJobDir()
 	logger := ctx.Logger.
 		WithField("job", job.Id()).
@@ -70,6 +66,11 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 	if err != nil {
 		jobCtx.logger.WithError(err).Error("Copy failed")
 		return err
+	}
+
+	if remoteAdditionalCacheSpec := job.RemoteAdditionalCacheSpec(); remoteAdditionalCacheSpec != nil {
+		jobCtx.logger.Debug("Job has additional remote caching")
+		// remoteAdditionalCacheSpec.JobSubdir
 	}
 
 	if err = jobCtx.pendingJobFileSystem.RemoveAll("."); err != nil {

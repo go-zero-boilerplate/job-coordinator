@@ -6,6 +6,7 @@ import (
 )
 
 type jobContext struct {
-	logger      logger.Logger
-	remoteComms remote_comms_facade.Facade
+	logger        logger.Logger
+	remoteComms   remote_comms_facade.Facade
+	remoteJobPath string
 }

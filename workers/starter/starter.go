@@ -21,12 +21,8 @@ type starter struct{}
 func (s *starter) getJobContext(ctx *context.Context, job Job) (*jobContext, error) {
 	hostDetails := job.HostDetails()
 	remoteComms := ctx.RemoteCommsFactory.NewFacade(hostDetails)
-	remoteTempDir, err := remoteComms.GetTempDir()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get remote temp dir for host '%s', error: %s", hostDetails.HostName(), err.Error())
-	}
 
-	remoteJobFS := hostDetails.RemoteFileSystemFactory().New(remoteTempDir, job.Id())
+	remoteJobFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
 	remoteJobPath := remoteJobFS.GetFullJobDir()
 	logger := ctx.Logger.
 		WithField("job", job.Id()).

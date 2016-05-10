@@ -8,7 +8,6 @@ type baseDirFactory struct {
 	baseDir string
 }
 
-func (b *baseDirFactory) New(remoteTempDir, jobId string) FileSystem {
-	//Yes we are ignoring the 'remoteTempDir' but instead using the specified baseDir
+func (b *baseDirFactory) New(jobId string) FileSystem {
 	return NewBaseDirFileSystem(b.baseDir, jobId)
 }

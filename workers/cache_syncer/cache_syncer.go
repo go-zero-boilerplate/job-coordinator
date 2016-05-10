@@ -21,12 +21,17 @@ func (c *copyTo) getJobContext(ctx *context.Context, job Job) (*jobContext, erro
 	hostDetails := job.HostDetails()
 	remoteComms := ctx.RemoteCommsFactory.NewFacade(hostDetails)
 
+	remoteFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
+	remoteJobPath := remoteFS.GetFullJobDir()
 	logger := ctx.Logger.
-		WithField("host", hostDetails.HostName())
+		WithField("job", job.Id()).
+		WithField("host", hostDetails.HostName()).
+		WithField("remote-dir", remoteJobPath)
 
 	jobCtx := &jobContext{
-		logger:      logger,
-		remoteComms: remoteComms,
+		logger:        logger,
+		remoteJobPath: remoteJobPath,
+		remoteComms:   remoteComms,
 	}
 	return jobCtx, nil
 }
@@ -36,8 +41,8 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 	defer jobCtx.logger.Trace("Starting job").Stop(&err)
 
 	//TODO: This `afero.FullBaseFsPath` is used in multiple spots, perhaps centralize?
-	localFullCacheDir := afero.FullBaseFsPath(job.LocalSourceCacheFS().(*afero.BasePathFs), "")
-	remoteFinalCacheDir := job.RemoteDestCacheFS().GetFullPath()
+	localFullCacheDir := afero.FullBaseFsPath(job.LocalJobCacheFS().(*afero.BasePathFs), "")
+	remoteFinalCacheDir := jobCtx.remoteJobPath
 	remotePendingCacheDir := remoteFinalCacheDir + "_pending"
 	remoteOldCacheDir := remoteFinalCacheDir + "_old"
 	logger := jobCtx.logger.
@@ -73,10 +78,16 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 		return err
 	}
 
-	logger.Debug("Moving remote FINAL to OLD dir")
-	if err = jobCtx.remoteComms.Move(remoteFinalCacheDir, remoteOldCacheDir); err != nil {
-		logger.WithError(err).Error("Cannot rename pending to final")
-		return err
+	if finalDirInfo, err := jobCtx.remoteComms.Stats(remoteFinalCacheDir); err != nil {
+		logger.WithError(err).Error("Cannot get stats for final dir (to be renamed to old)")
+	} else if finalDirInfo.Exists {
+		logger.Debug("Moving remote FINAL to OLD dir")
+		if err = jobCtx.remoteComms.Move(remoteFinalCacheDir, remoteOldCacheDir); err != nil {
+			logger.WithError(err).Error("Cannot rename pending to final")
+			return err
+		}
+	} else {
+		logger.Debug("Skipping move of remote FINAL to OLD dir (dir missing)")
 	}
 
 	logger.Debug("Moving remote PENDING to FINAL dir")

@@ -32,12 +32,8 @@ func (m *monitor) GetJobContext(ctx *context.Context, job Job) (*jobContext, err
 		//WithField("pid", job.Pid())
 
 	remoteComms := ctx.RemoteCommsFactory.NewFacade(hostDetails)
-	remoteTempDir, err := remoteComms.GetTempDir()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get remote temp dir for host '%s', error: %s", hostDetails.HostName(), err.Error())
-	}
 
-	remoteJobFS := hostDetails.RemoteFileSystemFactory().New(remoteTempDir, job.Id())
+	remoteJobFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
 
 	remoteLogFile := remoteJobFS.GetFullJobDir(exec_logger_constants.LOG_FILE_NAME)
 	aliveFilePath := remoteJobFS.GetFullJobDir(exec_logger_constants.ALIVE_FILE_NAME)

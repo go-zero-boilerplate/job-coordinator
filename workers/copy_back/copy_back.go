@@ -24,16 +24,12 @@ type copyBack struct{}
 func (c *copyBack) getJobContext(ctx *context.Context, completedJobFileSystem, oldCompletedJobFileSystem afero.Fs, job Job) (*jobContext, error) {
 	hostDetails := job.HostDetails()
 	remoteComms := ctx.RemoteCommsFactory.NewFacade(hostDetails)
-	remoteTempDir, err := remoteComms.GetTempDir()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get remote temp dir for host '%s', error: %s", hostDetails.HostName(), err.Error())
-	}
 
 	//TODO: This `afero.FullBaseFsPath` is used in multiple spots, perhaps centralize?
 	fullCompletedJobPath := afero.FullBaseFsPath(completedJobFileSystem.(*afero.BasePathFs), "")
 	fullOldCompletedJobPath := afero.FullBaseFsPath(oldCompletedJobFileSystem.(*afero.BasePathFs), "")
 
-	remoteFS := hostDetails.RemoteFileSystemFactory().New(remoteTempDir, job.Id())
+	remoteFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
 	remoteJobPath := remoteFS.GetFullJobDir()
 	logger := ctx.Logger.
 		WithField("job", job.Id()).
