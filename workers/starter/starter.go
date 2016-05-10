@@ -6,10 +6,12 @@ import (
 	"github.com/go-zero-boilerplate/job-coordinator/context"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/exec_logger_helpers"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/remote_comms_facade"
+	"github.com/golang-devops/exec-logger/exec_logger_constants"
 )
 
 type Worker interface {
 	DoJob(ctx *context.Context, job Job) error
+	HasJobBeenStarted(ctx *context.Context, job Job) (bool, error)
 }
 
 func NewWorker() Worker {
@@ -80,7 +82,7 @@ func (s *starter) runJob(jobCtx *jobContext, job Job) (*remote_comms_facade.Star
 func (s *starter) DoJob(ctx *context.Context, job Job) error {
 	jobCtx, err := s.getJobContext(ctx, job)
 	if err != nil {
-		return fmt.Errorf("Cannot get job context, error: %s", err.Error())
+		return fmt.Errorf("Cannot get job context (DoJob), error: %s", err.Error())
 	}
 
 	if _, err := s.runJob(jobCtx, job); err != nil {
@@ -88,4 +90,23 @@ func (s *starter) DoJob(ctx *context.Context, job Job) error {
 	}
 
 	return nil
+}
+
+func (s *starter) HasJobBeenStarted(ctx *context.Context, job Job) (bool, error) {
+	jobCtx, err := s.getJobContext(ctx, job)
+	if err != nil {
+		return false, fmt.Errorf("Cannot get job context (HasJobBeenStarted), error: %s", err.Error())
+	}
+
+	aliveFilePath := jobCtx.remoteJobFS.GetFullJobDir(exec_logger_constants.ALIVE_FILE_NAME)
+	_, err = jobCtx.remoteComms.ReadFileContent(aliveFilePath)
+	if err != nil {
+		jobCtx.logger.
+			WithError(err).
+			WithField("alive-file", aliveFilePath).
+			Warn("Unable to read alive file, assuming it does not exist which means the job did not start yet")
+		return false, nil //no error as we assume this error is alive-file missing which means the job did not yet start
+	}
+
+	return true, nil
 }
