@@ -30,8 +30,8 @@ func (t *testingJob) createTempFile() error {
 	return afero.WriteFile(t.fileSystem, "tmp-cop-to-file-1.txt", fileContent, 0655)
 }
 
-func (t *testingJob) RemoteAdditionalCacheSpec() *RemoteAdditionalCacheSpec {
-	//TODO: Add tests
+func (t *testingJob) RemoteAdditionalCacheSpecs() []*RemoteAdditionalCacheSpec {
+	//TODO: Implement tests
 	return nil
 }
 

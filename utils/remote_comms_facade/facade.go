@@ -40,6 +40,7 @@ type Facade interface {
 	UploadFileContent(remotePath string, content []byte) error
 
 	Stats(remotePath string) (*dtos.StatsDto, error)
+	Copy(srcRemotePath, destRemotePath string) error
 	Move(oldRemotePath, newRemotePath string) error
 
 	Delete(remotePath string) error
@@ -339,6 +340,18 @@ func (f *facade) Stats(remotePath string) (*dtos.StatsDto, error) {
 	}
 
 	return statsDTO, nil
+}
+
+func (f *facade) Copy(srcRemotePath, destRemotePath string) error {
+	session, err := f.newGoPsExecSession()
+	if err != nil {
+		return err
+	}
+
+	if err := session.FileSystem().Copy(srcRemotePath, destRemotePath); err != nil {
+		return fmt.Errorf("Unable to copy remote path from '%s' to '%s', error: %s", srcRemotePath, destRemotePath, err.Error())
+	}
+	return nil
 }
 
 func (f *facade) Move(oldRemotePath, newRemotePath string) error {

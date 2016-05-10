@@ -2,6 +2,7 @@ package copy_to
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/francoishill/afero"
 
@@ -68,9 +69,16 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 		return err
 	}
 
-	if remoteAdditionalCacheSpec := job.RemoteAdditionalCacheSpec(); remoteAdditionalCacheSpec != nil {
+	if remoteAdditionalCacheSpecs := job.RemoteAdditionalCacheSpecs(); len(remoteAdditionalCacheSpecs) > 0 {
 		jobCtx.logger.Debug("Job has additional remote caching")
-		// remoteAdditionalCacheSpec.JobSubdir
+		for _, spec := range remoteAdditionalCacheSpecs {
+			remoteCacheDir := spec.RemoteCacheFS.GetFullJobDir()
+			remoteJobSubDir := filepath.Join(jobCtx.remoteJobPath, spec.JobSubdir)
+			if err = jobCtx.remoteComms.Copy(remoteCacheDir, remoteJobSubDir); err != nil {
+				jobCtx.logger.WithError(err).WithField("cache-src", remoteCacheDir).WithField("cache-dest", remoteJobSubDir).Error("Cannot copy remote cache")
+				return err
+			}
+		}
 	}
 
 	if err = jobCtx.pendingJobFileSystem.RemoveAll("."); err != nil {
