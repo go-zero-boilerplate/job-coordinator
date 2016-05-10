@@ -25,7 +25,7 @@ func (s *starter) getJobContext(ctx *context.Context, job Job) (*jobContext, err
 	remoteJobFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
 	remoteJobPath := remoteJobFS.GetFullJobDir()
 	logger := ctx.Logger.
-		WithField("job", job.Id()).
+		WithField("phase-id", job.Id()).
 		WithField("host", hostDetails.HostName()).
 		WithField("remote-dir", remoteJobPath)
 

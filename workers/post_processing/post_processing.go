@@ -24,7 +24,7 @@ type postProcessing struct{}
 
 func (p *postProcessing) getJobContext(ctx *context.Context, completedJobFileSystem afero.Fs, job Job) (*jobContext, error) {
 	logger := ctx.Logger.
-		WithField("job", job.Id())
+		WithField("phase-id", job.Id())
 
 	jobCtx := &jobContext{
 		logger:                    logger,

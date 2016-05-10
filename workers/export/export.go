@@ -25,7 +25,7 @@ func (e *export) getJobContext(ctx *context.Context, pendingJobFileSystem afero.
 	hostDetails := job.HostDetails()
 
 	logger := ctx.Logger.
-		WithField("job", job.Id())
+		WithField("phase-id", job.Id())
 
 	jobCtx := &jobContext{
 		logger:                 logger,

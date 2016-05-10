@@ -32,7 +32,7 @@ func (c *copyBack) getJobContext(ctx *context.Context, completedJobFileSystem, o
 	remoteFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
 	remoteJobPath := remoteFS.GetFullJobDir()
 	logger := ctx.Logger.
-		WithField("job", job.Id()).
+		WithField("phase-id", job.Id()).
 		WithField("local-dir", fullCompletedJobPath).
 		WithField("local-old-dir", fullOldCompletedJobPath).
 		WithField("host", hostDetails.HostName()).

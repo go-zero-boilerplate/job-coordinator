@@ -27,7 +27,7 @@ type monitor struct{}
 func (m *monitor) GetJobContext(ctx *context.Context, job Job) (*jobContext, error) {
 	hostDetails := job.HostDetails()
 	logger := ctx.Logger.
-		WithField("job", job.Id()).
+		WithField("phase-id", job.Id()).
 		WithField("host", hostDetails.HostName())
 		//WithField("pid", job.Pid())
 
