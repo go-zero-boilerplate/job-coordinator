@@ -9,23 +9,22 @@ import (
 	"github.com/go-zero-boilerplate/job-coordinator/utils/jobqueue"
 )
 
-type OnResult func(job Job)
-
 type hostQueues struct {
-	lock           sync.Locker
+	lock           sync.RWMutex
 	logger         logger.Logger
 	hostQueues     map[string]*jobqueue.Queue
 	resultHandlers *queuedResultHandlers
 }
 
 func (h *hostQueues) QueueJob(c *copyTo, ctx *context.Context, job Job, onResult OnResult, maxGoRoutinesPerHost int) {
-	q := h.getQueueForHost(job.HostDetails(), onResult, maxGoRoutinesPerHost)
 	queuedJob := &queuedJob{
 		copyToWorker: c,
 		ctx:          ctx,
 		job:          job,
 	}
-	h.resultHandlers.addHandler(queuedJob, onResult)
+	h.resultHandlers.AddHandler(queuedJob, onResult)
+
+	q := h.getQueueForHost(job.HostDetails(), maxGoRoutinesPerHost)
 	q.QueueJob(queuedJob)
 }
 
@@ -57,8 +56,9 @@ func (h *hostQueues) startQueueResultProcessing(hostDetails host_details.HostDet
 	defer h.logger.DeferredRecoverStack("Error processing results")
 
 	for result := range queue.ResultsChannel() {
-		h.logger.Debug("Job done, result = %+v", result)
-		if err := h.resultHandlers.OnResult(result); err != nil {
+		h.logger.Debug("TEMP: Job done, result %+v (type = %T)", result, result)
+		h.logger.WithField("result", result).Debug("TEMP: Got result")
+		if err := h.resultHandlers.HandleResult(result); err != nil {
 			h.logger.WithError(err).Error("Failed to handle OnResult")
 		}
 	}

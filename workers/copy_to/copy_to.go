@@ -2,7 +2,6 @@ package copy_to
 
 import (
 	"fmt"
-	"magus_gitlab/internal-tools/validation-v2/shared/jobqueue"
 	"path/filepath"
 
 	"github.com/francoishill/afero"
@@ -10,10 +9,12 @@ import (
 	"github.com/go-zero-boilerplate/job-coordinator/context"
 	"github.com/go-zero-boilerplate/job-coordinator/logger"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/job_helpers"
+	"github.com/go-zero-boilerplate/job-coordinator/utils/jobqueue"
 )
 
 type Worker interface {
 	DoJob(ctx *context.Context, job Job) error
+	QueueJob(ctx *context.Context, maxGoRoutinesPerHost int, job Job, onResult OnResult)
 }
 
 func NewWorker(logger logger.Logger) Worker {
@@ -21,7 +22,7 @@ func NewWorker(logger logger.Logger) Worker {
 		hq: &hostQueues{
 			logger:         logger,
 			hostQueues:     make(map[string]*jobqueue.Queue),
-			resultHandlers: &queuedResultHandlers{},
+			resultHandlers: &queuedResultHandlers{handlers: make(map[*queuedJob]OnResult)},
 		},
 	}
 }
@@ -115,7 +116,7 @@ func (c *copyTo) DoJob(ctx *context.Context, job Job) error {
 	return nil
 }
 
-func (c *copyTo) QueueJob(ctx *context.Context, job Job, onResult OnResult) {
-	maxGoRoutinesPerHost := 5
-	c.hq.QueueJob(c, ctx, job, onResult, maxGoRoutinesPerHost, onResult)
+func (c *copyTo) QueueJob(ctx *context.Context, maxGoRoutinesPerHost int, job Job, onResult OnResult) {
+	ctx.Logger.WithField("phase-id", job.Id()).Debug("TEMP: Queueing job")
+	c.hq.QueueJob(c, ctx, job, onResult, maxGoRoutinesPerHost)
 }
