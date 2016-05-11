@@ -2,11 +2,13 @@ package copy_to
 
 import (
 	"fmt"
+	"magus_gitlab/internal-tools/validation-v2/shared/jobqueue"
 	"path/filepath"
 
 	"github.com/francoishill/afero"
 
 	"github.com/go-zero-boilerplate/job-coordinator/context"
+	"github.com/go-zero-boilerplate/job-coordinator/logger"
 	"github.com/go-zero-boilerplate/job-coordinator/utils/job_helpers"
 )
 
@@ -14,11 +16,19 @@ type Worker interface {
 	DoJob(ctx *context.Context, job Job) error
 }
 
-func NewWorker() Worker {
-	return &copyTo{}
+func NewWorker(logger logger.Logger) Worker {
+	return &copyTo{
+		hq: &hostQueues{
+			logger:         logger,
+			hostQueues:     make(map[string]*jobqueue.Queue),
+			resultHandlers: &queuedResultHandlers{},
+		},
+	}
 }
 
-type copyTo struct{}
+type copyTo struct {
+	hq *hostQueues
+}
 
 func (c *copyTo) getJobContext(ctx *context.Context, pendingJobFileSystem afero.Fs, job Job) (*jobContext, error) {
 	hostDetails := job.HostDetails()
@@ -103,4 +113,9 @@ func (c *copyTo) DoJob(ctx *context.Context, job Job) error {
 	}
 
 	return nil
+}
+
+func (c *copyTo) QueueJob(ctx *context.Context, job Job, onResult OnResult) {
+	maxGoRoutinesPerHost := 5
+	c.hq.QueueJob(c, ctx, job, onResult, maxGoRoutinesPerHost, onResult)
 }
