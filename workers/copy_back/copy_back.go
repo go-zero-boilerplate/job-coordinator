@@ -85,10 +85,12 @@ func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
 		return err
 	}
 
+	//Cleanup before copying files back (remove binaries, etc)
 	for _, relRemotePathToDelete := range job.RemoteCleanupSpec().RelativePathsToDelete {
 		fullRemotePath := filepath.Join(jobCtx.remoteJobPath, relRemotePathToDelete)
 		if err := jobCtx.remoteComms.Delete(fullRemotePath); err != nil {
 			jobCtx.logger.WithError(err).WithField("remote-path", fullRemotePath).Error("Cannot delete remote path")
+			//Do not return error, this could be mitigated by the user or admin later on
 		}
 	}
 
@@ -98,9 +100,10 @@ func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
 		return err
 	}
 
+	//Cleanup the remote dir after successfully copying back
 	if err = jobCtx.remoteComms.Delete(jobCtx.remoteJobPath); err != nil {
 		jobCtx.logger.WithError(err).Error("Cannot remove remote job dir")
-		return err
+		//Do not return error, this could be mitigated by the user or admin later on
 	} else {
 		jobCtx.logger.Info("Successfully deleted remote job dir")
 	}
