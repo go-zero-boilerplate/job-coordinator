@@ -2,10 +2,10 @@ package jobqueue
 
 type worker struct{}
 
-func (w *worker) start(workerId int, jobs <-chan Job, results chan<- JobResult, onResultSent func(job Job)) {
+func (w *worker) start(workerID int, jobs <-chan Job, results chan<- JobResult, onResultSent func(job Job)) {
 	for job := range jobs {
-		result := job.Do(workerId)
-		results <- JobResult{job: job, Result: result}
+		err := job.Do(workerID)
+		results <- JobResult{job: job, Error: err}
 		onResultSent(job)
 	}
 }

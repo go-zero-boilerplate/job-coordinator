@@ -8,7 +8,8 @@ import (
 )
 
 type OnResult interface {
-	OnResult(job Job)
+	OnSuccess(job Job)
+	OnError(err error)
 }
 
 type queuedResultHandlers struct {
@@ -28,7 +29,11 @@ func (q *queuedResultHandlers) HandleResult(result jobqueue.JobResult) error {
 	resultJob := result.Job()
 	for qj, onResult := range q.handlers {
 		if resultJob == qj {
-			onResult.OnResult(qj.job)
+			if result.Error == nil {
+				onResult.OnSuccess(qj.job)
+			} else {
+				onResult.OnError(result.Error)
+			}
 			return nil
 		}
 	}

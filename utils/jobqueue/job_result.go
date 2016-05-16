@@ -1,8 +1,8 @@
 package jobqueue
 
 type JobResult struct {
-	job    Job
-	Result interface{}
+	job   Job
+	Error error
 }
 
 func (j *JobResult) Job() Job {

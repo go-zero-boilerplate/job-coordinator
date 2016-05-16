@@ -10,6 +10,7 @@ type queuedJob struct {
 	job          Job
 }
 
-func (q *queuedJob) Do(workerId int) interface{} {
+//Do will execute the job
+func (q *queuedJob) Do(workerID int) error {
 	return q.copyToWorker.DoJob(q.ctx, q.job)
 }
