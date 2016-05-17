@@ -161,7 +161,7 @@ func (m *monitor) waitWhileAlive(jobCtx *jobContext) (*exec_logger_dtos.ExitStat
 
 func (m *monitor) runJobAndWaitWhileAlive(jobCtx *jobContext, job Job) error {
 	var err error
-	defer jobCtx.logger.Trace("Starting job").Stop(&err)
+	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
 	time.Sleep(jobCtx.initialSleepDelay)
 

@@ -71,7 +71,7 @@ func (c *copyBack) moveCompletedToOld(jobCtx *jobContext) error {
 
 func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
 	var err error
-	defer jobCtx.logger.Trace("Starting job").Stop(&err)
+	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
 	//Do this instead of ping
 	err = jobCtx.remoteComms.ConfirmVersionMatch(job.HostDetails().ExpectedGopsexecVersion())

@@ -39,7 +39,7 @@ func (p *postProcessing) getJobContext(ctx *context.Context, completedJobFileSys
 
 func (p *postProcessing) runJob(jobCtx *jobContext, job Job) (*Result, error) {
 	var err error
-	defer jobCtx.logger.Trace("Starting job").Stop(&err)
+	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
 	exitedDtoContent, err := afero.ReadFile(jobCtx.completedJobFileSystem, jobCtx.exitedRelativePath)
 	if err != nil {

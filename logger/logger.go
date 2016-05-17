@@ -7,6 +7,7 @@ import (
 type Logger interface {
 	loggers.LoggerRFC5424
 	Trace(format string, params ...interface{}) LogTracer
+	TraceDebug(format string, params ...interface{}) LogDebugTracer
 
 	WithError(err error) Logger
 	WithField(key string, value interface{}) Logger

@@ -42,7 +42,7 @@ func (s *starter) getJobContext(ctx *context.Context, job Job) (*jobContext, err
 
 func (s *starter) runJob(jobCtx *jobContext, job Job) (*remote_comms_facade.StartedDetails, error) {
 	var err error
-	defer jobCtx.logger.Trace("Starting job").Stop(&err)
+	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
 	//Do this instead of ping
 	err = jobCtx.remoteComms.ConfirmVersionMatch(job.HostDetails().ExpectedGopsexecVersion())

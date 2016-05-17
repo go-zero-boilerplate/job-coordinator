@@ -38,7 +38,7 @@ func (e *export) getJobContext(ctx *context.Context, pendingJobFileSystem afero.
 
 func (e *export) runJob(jobCtx *jobContext, job Job) error {
 	var err error
-	defer jobCtx.logger.Trace("Starting job").Stop(&err)
+	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
 	//Clean possible folder before exporting
 	if err = jobCtx.pendingJobFileSystem.RemoveAll("."); err != nil {

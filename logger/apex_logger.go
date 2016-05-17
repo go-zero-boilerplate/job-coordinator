@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	apex "github.com/apex/log"
+	apex "github.com/francoishill/log"
 
 	"github.com/go-zero-boilerplate/job-coordinator/utils/debug"
 )
@@ -55,6 +55,15 @@ func (l *apexLogger) Debug(format string, params ...interface{}) {
 func (l *apexLogger) Trace(format string, params ...interface{}) LogTracer {
 	return l.apexEntry.Trace(fmt.Sprintf(format, params...))
 }
+func (l *apexLogger) TraceDebug(format string, params ...interface{}) LogDebugTracer {
+	return &localLogDebugTracer{l.apexEntry.TraceLevel(apex.DebugLevel, fmt.Sprintf(format, params...))}
+}
+
+type localLogDebugTracer struct {
+	e *apex.Entry
+}
+
+func (l *localLogDebugTracer) StopDebug(errPtr *error) { l.e.StopLevel(apex.DebugLevel, errPtr) }
 
 func (l *apexLogger) WithError(err error) Logger {
 	newEntry := l.apexEntry.WithError(err)

@@ -38,7 +38,7 @@ func (c *copyTo) getJobContext(ctx *context.Context, job Job) (*jobContext, erro
 
 func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 	var err error
-	defer jobCtx.logger.Trace("Starting job").Stop(&err)
+	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
 	//TODO: This `afero.FullBaseFsPath` is used in multiple spots, perhaps centralize?
 	localFullCacheDir := afero.FullBaseFsPath(job.LocalJobCacheFS().(*afero.BasePathFs), "")
