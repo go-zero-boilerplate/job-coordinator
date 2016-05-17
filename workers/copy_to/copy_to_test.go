@@ -73,12 +73,10 @@ func TestExportWorker(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		expectation := testing_utils.LogExpectation{
-			LineCount: 4,
+			LineCount: 2,
 			Lines: []testing_utils.ExpectedLine{
-				testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-				testing_utils.ExpectedLine{Index: 1, Info: true, RequiredSubstrings: []string{"Successfully ensured remove job dir gone"}},
-				testing_utils.ExpectedLine{Index: 2, Info: true, RequiredSubstrings: []string{"Successfully deleted local export dir"}},
-				testing_utils.ExpectedLine{Index: 3, Info: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
+				testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Successfully ensured remove job dir gone"}},
+				testing_utils.ExpectedLine{Index: 1, Info: true, RequiredSubstrings: []string{"Successfully deleted local export dir"}},
 			},
 		}
 

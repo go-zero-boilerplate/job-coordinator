@@ -120,9 +120,23 @@ func (l *logTracer) Stop(errPtr *error) {
 	}
 }
 
+func (l *logTracer) StopDebug(errPtr *error) {
+	if *errPtr == nil {
+		l.logger.WithField("duration", time.Since(l.startTime)).Debug(l.msg)
+	} else {
+		l.logger.WithField("duration", time.Since(l.startTime)).WithError(*errPtr).Error(l.msg)
+	}
+}
+
 func (t *TestingLogger) Trace(format string, params ...interface{}) logger.LogTracer {
 	msg := fmt.Sprintf(format, params...)
 	t.Info(format, params...)
+	return &logTracer{startTime: time.Now(), logger: t, msg: msg}
+}
+
+func (t *TestingLogger) TraceDebug(format string, params ...interface{}) logger.LogDebugTracer {
+	msg := fmt.Sprintf(format, params...)
+	t.Debug(format, params...)
 	return &logTracer{startTime: time.Now(), logger: t, msg: msg}
 }
 

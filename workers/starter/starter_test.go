@@ -95,11 +95,9 @@ func TestCopyToWorker(t *testing.T) {
 		}
 
 		expectation := testing_utils.LogExpectation{
-			LineCount: 3,
+			LineCount: 1,
 			Lines: []testing_utils.ExpectedLine{
-				testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-				testing_utils.ExpectedLine{Index: 1, Info: true, RequiredSubstrings: []string{fmt.Sprintf("Started command with Pid %d", startedDetails.Pid)}},
-				testing_utils.ExpectedLine{Index: 2, Info: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
+				testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{fmt.Sprintf("Started command with Pid %d", startedDetails.Pid)}},
 			},
 		}
 

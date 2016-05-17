@@ -129,11 +129,10 @@ func TestExportWorker(t *testing.T) {
 		So(err.Error(), ShouldContainSubstring, "The system cannot find the file specified")
 
 		expectation := testing_utils.LogExpectation{
-			LineCount: 3,
+			LineCount: 2,
 			Lines: []testing_utils.ExpectedLine{
-				testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-				testing_utils.ExpectedLine{Index: 1, Error: true, RequiredSubstrings: []string{"Cannot read exit file"}},
-				testing_utils.ExpectedLine{Index: 2, Error: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
+				testing_utils.ExpectedLine{Index: 0, Error: true, RequiredSubstrings: []string{"Cannot read exit file"}},
+				testing_utils.ExpectedLine{Index: 1, Error: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
 			},
 		}
 
@@ -174,11 +173,8 @@ func TestExportWorker(t *testing.T) {
 		So(string(logContent), ShouldContainSubstring, job.logContent)
 
 		expectation = testing_utils.LogExpectation{
-			LineCount: 2,
-			Lines: []testing_utils.ExpectedLine{
-				testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-				testing_utils.ExpectedLine{Index: 1, Info: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
-			},
+			LineCount: 0,
+			Lines:     []testing_utils.ExpectedLine{},
 		}
 
 		includeDebugLines = false

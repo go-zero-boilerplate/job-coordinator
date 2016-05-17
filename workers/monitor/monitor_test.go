@@ -183,11 +183,9 @@ func TestMonitorWorker(t *testing.T) {
 				So(string(logFileContent), ShouldContainSubstring, "Command exited with code 2")
 
 				expectation := testing_utils.LogExpectation{
-					LineCount: 3,
+					LineCount: 1,
 					Lines: []testing_utils.ExpectedLine{
-						testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-						testing_utils.ExpectedLine{Index: 1, Error: true, RequiredSubstrings: []string{"Command exited with error: exit status 2. ExitCode was 2"}},
-						testing_utils.ExpectedLine{Index: 2, Info: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
+						testing_utils.ExpectedLine{Index: 0, Error: true, RequiredSubstrings: []string{"Command exited with error: exit status 2. ExitCode was 2"}},
 					},
 				}
 
@@ -201,11 +199,9 @@ func TestMonitorWorker(t *testing.T) {
 				So(time.Now().Sub(startTime).Seconds(), ShouldBeLessThan, 10)
 
 				expectation := testing_utils.LogExpectation{
-					LineCount: 3,
+					LineCount: 1,
 					Lines: []testing_utils.ExpectedLine{
-						testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-						testing_utils.ExpectedLine{Index: 1, Error: true, RequiredSubstrings: []string{"Command exited with error: exit status 1. ExitCode was 1"}},
-						testing_utils.ExpectedLine{Index: 2, Info: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
+						testing_utils.ExpectedLine{Index: 0, Error: true, RequiredSubstrings: []string{"Command exited with error: exit status 1. ExitCode was 1"}},
 					},
 				}
 
@@ -218,11 +214,8 @@ func TestMonitorWorker(t *testing.T) {
 				}
 
 				expectation := testing_utils.LogExpectation{
-					LineCount: 2,
-					Lines: []testing_utils.ExpectedLine{
-						testing_utils.ExpectedLine{Index: 0, Info: true, RequiredSubstrings: []string{"Starting job"}},
-						testing_utils.ExpectedLine{Index: 1, Info: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
-					},
+					LineCount: 0,
+					Lines:     []testing_utils.ExpectedLine{},
 				}
 
 				includeDebugLines := false
