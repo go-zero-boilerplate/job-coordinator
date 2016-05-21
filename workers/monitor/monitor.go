@@ -80,7 +80,7 @@ func (m *monitor) readAliveTime(jobCtx *jobContext) (*aliveTime, error) {
 	}
 }
 
-func (m *monitor) notifyShutdown(jobCtx *jobContext, message string) error {
+func (m *monitor) notifyAbort(jobCtx *jobContext, message string) error {
 	abortLines := []string{
 		fmt.Sprintf("TIME: %s", time.Now().UTC().Format(exec_logger_constants.ALIVE_TIME_FORMAT)),
 		fmt.Sprintf("MESSAGE: %s", message),
@@ -96,13 +96,13 @@ func (m *monitor) CheckCurrentStatus(jobCtx *jobContext) (*Status, error) {
 	aliveErrCounter := &errorCounter{max: 5}
 	durationAfterWhichAssumeDead := 5 * time.Minute
 
+RETRY_ON_ALIVE_ERROR:
 	if exitStatus, err := m.readExitStatusFile(jobCtx); err == nil {
 		jobCtx.logger.Debug("Exit file found (exit code %d)", exitStatus.ExitCode)
 		// Got the exit status file, assume the process is finished and no need to check alive file
 		return &Status{ExitStatus: exitStatus}, nil
 	}
 
-RETRY_ON_ALIVE_ERROR:
 	aliveTime, err := m.readAliveTime(jobCtx)
 	if err != nil {
 		aliveErrCounter.Inc()
@@ -110,10 +110,12 @@ RETRY_ON_ALIVE_ERROR:
 		jobCtx.logger.WithError(err).Warn("Consecutive alive error %d/%d", aliveErrCounter.current, aliveErrCounter.max)
 
 		if aliveErrCounter.CapReached() {
-			if exitStatus, readExitStatusErr := m.readExitStatusFile(jobCtx); readExitStatusErr == nil {
-				// If we successfully read the exit status, "ignore" the alive file error
-				return &Status{ExitStatus: exitStatus}, nil
+			notifyMessage := fmt.Sprintf("Failed too many times checking if alive (%d/%d)", aliveErrCounter.current, aliveErrCounter.max)
+			if notifyErr := m.notifyAbort(jobCtx, notifyMessage); notifyErr != nil {
+				jobCtx.logger.WithError(notifyErr).Warn("Failure to 'notify abort'")
+				//do not return, we can continue still if failed to notify remote machine to abort
 			}
+
 			return nil, fmt.Errorf("Failed too many times checking if alive (%d/%d)", aliveErrCounter.current, aliveErrCounter.max)
 		}
 
@@ -130,9 +132,9 @@ RETRY_ON_ALIVE_ERROR:
 		}
 
 		notifyMessage := fmt.Sprintf("Assumed process died (tolerance was %s)", durationAfterWhichAssumeDead.String())
-		if notifyErr := m.notifyShutdown(jobCtx, notifyMessage); notifyErr != nil {
-			jobCtx.logger.WithError(notifyErr).Warn("Failure to 'notify shutdown'")
-			//do not return, we can continue still if failed to notify remote machine to shut down
+		if notifyErr := m.notifyAbort(jobCtx, notifyMessage); notifyErr != nil {
+			jobCtx.logger.WithError(notifyErr).Warn("Failure to 'notify abort'")
+			//do not return, we can continue still if failed to notify remote machine to abort
 		}
 
 		return nil, fmt.Errorf("Assuming process is dead (tolerance %s)", durationAfterWhichAssumeDead.String())
