@@ -159,7 +159,7 @@ func TestMonitorWorker(t *testing.T) {
 				go func() {
 					defer waitGrpPossibleAbortMsg.Done()
 					time.Sleep(1 * time.Second) //Give it time to start running
-					notifyAbortErr = worker.notifyShutdown(jobCtx, "Abort from monitor_test.go")
+					notifyAbortErr = worker.notifyAbort(jobCtx, "Abort from monitor_test.go")
 				}()
 			}
 
