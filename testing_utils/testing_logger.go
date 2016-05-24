@@ -146,9 +146,12 @@ func (t *TestingLogger) WithField(key string, value interface{}) logger.Logger {
 	return t.WithFields(fields)
 }
 func (t *TestingLogger) WithFields(fields map[string]interface{}) logger.Logger {
+	f := []map[string]interface{}{}
+	f = append(f, t.Fields...)
+	f = append(f, fields)
 	return &TestingLogger{
 		Handler: t.Handler,
-		Fields:  append(t.Fields, fields),
+		Fields:  f,
 	}
 }
 func (t *TestingLogger) WithError(err error) logger.Logger {
