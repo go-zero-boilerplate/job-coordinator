@@ -85,9 +85,16 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 		for _, spec := range remoteAdditionalCacheSpecs {
 			remoteCacheDir := spec.RemoteCacheFS.GetFullJobDir()
 			remoteJobSubDir := filepath.Join(jobCtx.remoteJobPath, spec.JobSubdir)
-			if err = jobCtx.remoteComms.Copy(remoteCacheDir, remoteJobSubDir); err != nil {
-				jobCtx.logger.WithError(err).WithField("cache-src", remoteCacheDir).WithField("cache-dest", remoteJobSubDir).Error("Cannot copy remote cache")
-				return err
+			if spec.SymlinkInsteadOfCopy {
+				if err = jobCtx.remoteComms.Symlink(remoteCacheDir, remoteJobSubDir); err != nil {
+					jobCtx.logger.WithError(err).WithField("cache-src", remoteCacheDir).WithField("cache-dest", remoteJobSubDir).Error("Cannot symlink remote cache")
+					return err
+				}
+			} else {
+				if err = jobCtx.remoteComms.Copy(remoteCacheDir, remoteJobSubDir); err != nil {
+					jobCtx.logger.WithError(err).WithField("cache-src", remoteCacheDir).WithField("cache-dest", remoteJobSubDir).Error("Cannot copy remote cache")
+					return err
+				}
 			}
 		}
 	}

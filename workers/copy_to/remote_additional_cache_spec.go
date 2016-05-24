@@ -5,6 +5,7 @@ import (
 )
 
 type RemoteAdditionalCacheSpec struct {
-	JobSubdir     string
-	RemoteCacheFS remote_file_system.FileSystem
+	JobSubdir            string
+	RemoteCacheFS        remote_file_system.FileSystem
+	SymlinkInsteadOfCopy bool
 }

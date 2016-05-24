@@ -41,6 +41,7 @@ type Facade interface {
 
 	Stats(remotePath string) (*dtos.StatsDto, error)
 	Copy(srcRemotePath, destRemotePath string) error
+	Symlink(srcRemotePath, destRemoteSymlinkPath string) error
 	Move(oldRemotePath, newRemotePath string) error
 
 	Delete(remotePath string) error
@@ -350,6 +351,18 @@ func (f *facade) Copy(srcRemotePath, destRemotePath string) error {
 
 	if err := session.FileSystem().Copy(srcRemotePath, destRemotePath); err != nil {
 		return fmt.Errorf("Unable to copy remote path from '%s' to '%s', error: %s", srcRemotePath, destRemotePath, err.Error())
+	}
+	return nil
+}
+
+func (f *facade) Symlink(srcRemotePath, destRemoteSymlinkPath string) error {
+	session, err := f.newGoPsExecSession()
+	if err != nil {
+		return err
+	}
+
+	if err := session.FileSystem().Symlink(srcRemotePath, destRemoteSymlinkPath); err != nil {
+		return fmt.Errorf("Unable to symlink remote path from '%s' to '%s', error: %s", srcRemotePath, destRemoteSymlinkPath, err.Error())
 	}
 	return nil
 }
