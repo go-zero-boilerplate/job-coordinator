@@ -10,6 +10,7 @@ import (
 )
 
 func NewApexLogger(level apex.Level, handler apex.Handler, apexEntry *apex.Entry) Logger {
+	//TODO: This set level and handler is global, this should not happen inside `NewApexLogger`
 	apex.SetLevel(level)
 	apex.SetHandler(handler)
 
