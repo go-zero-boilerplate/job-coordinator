@@ -13,8 +13,8 @@ import (
 )
 
 type Worker interface {
-	DoJob(ctx *context.Context, job Job) error
-	QueueJob(ctx *context.Context, maxGoRoutinesPerHost int, job Job, onResult OnResult)
+	DoJob(ctx *context.Context, job Job, handlers Handlers) error
+	QueueJob(ctx *context.Context, maxGoRoutinesPerHost int, job Job, handlers Handlers, onResult OnResult)
 }
 
 func NewWorker(logger logger.Logger) Worker {
@@ -56,7 +56,7 @@ func (c *copyTo) getJobContext(ctx *context.Context, pendingJobFileSystem afero.
 	return jobCtx, nil
 }
 
-func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
+func (c *copyTo) runJob(jobCtx *jobContext, job Job, handlers Handlers) error {
 	var err error
 	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
@@ -101,7 +101,8 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 
 	if err = jobCtx.pendingJobFileSystem.RemoveAll("."); err != nil {
 		jobCtx.logger.WithError(err).Error("Cannot remove local export dir")
-		//TODO: no need to return, we can still continue on this error, could potentially be cleaned by a "cleanup worker"?
+		handlers.FailedToRemoveLocalExportDir(err, jobCtx.pendingJobFileSystem)
+		//TODO: no need to return, we can still continue on this error
 	} else {
 		jobCtx.logger.Info("Successfully deleted local export dir")
 	}
@@ -109,21 +110,21 @@ func (c *copyTo) runJob(jobCtx *jobContext, job Job) error {
 	return nil
 }
 
-func (c *copyTo) DoJob(ctx *context.Context, job Job) error {
+func (c *copyTo) DoJob(ctx *context.Context, job Job, handlers Handlers) error {
 	pendingJobFileSystem := job_helpers.GetJobFileSystem(ctx.PendingLocalFileSystem, job.Id())
 	jobCtx, err := c.getJobContext(ctx, pendingJobFileSystem, job)
 	if err != nil {
 		return fmt.Errorf("Cannot get job context, error: %s", err.Error())
 	}
 
-	if err := c.runJob(jobCtx, job); err != nil {
+	if err := c.runJob(jobCtx, job, handlers); err != nil {
 		return fmt.Errorf("Could not run job, error: %s", err.Error())
 	}
 
 	return nil
 }
 
-func (c *copyTo) QueueJob(ctx *context.Context, maxGoRoutinesPerHost int, job Job, onResult OnResult) {
+func (c *copyTo) QueueJob(ctx *context.Context, maxGoRoutinesPerHost int, job Job, handlers Handlers, onResult OnResult) {
 	ctx.Logger.WithField("phase-id", job.Id()).Debug("TEMP: Queueing job")
-	c.hq.QueueJob(c, ctx, job, onResult, maxGoRoutinesPerHost)
+	c.hq.QueueJob(c, ctx, job, handlers, onResult, maxGoRoutinesPerHost)
 }

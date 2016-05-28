@@ -65,7 +65,9 @@ func TestExportWorker(t *testing.T) {
 
 		So(jobCtx.remoteJobPath, convey2.AssertDirectoryExistance, true)
 
-		err = worker.runJob(jobCtx, job)
+		//TODO: Should test scenario where event handlers get used inside worker
+		var handlers Handlers
+		err = worker.runJob(jobCtx, job, handlers)
 		So(err, ShouldBeNil)
 
 		So(jobCtx.remoteJobPath, convey2.AssertDirectoryExistance, false)

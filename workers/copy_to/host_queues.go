@@ -16,11 +16,12 @@ type hostQueues struct {
 	resultHandlers *queuedResultHandlers
 }
 
-func (h *hostQueues) QueueJob(c *copyTo, ctx *context.Context, job Job, onResult OnResult, maxGoRoutinesPerHost int) {
+func (h *hostQueues) QueueJob(c *copyTo, ctx *context.Context, job Job, handlers Handlers, onResult OnResult, maxGoRoutinesPerHost int) {
 	queuedJob := &queuedJob{
 		copyToWorker: c,
 		ctx:          ctx,
 		job:          job,
+		handlers:     handlers,
 	}
 	h.resultHandlers.AddHandler(queuedJob, onResult)
 

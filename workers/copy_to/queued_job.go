@@ -8,9 +8,10 @@ type queuedJob struct {
 	copyToWorker *copyTo
 	ctx          *context.Context
 	job          Job
+	handlers     Handlers
 }
 
 //Do will execute the job
 func (q *queuedJob) Do(workerID int) error {
-	return q.copyToWorker.DoJob(q.ctx, q.job)
+	return q.copyToWorker.DoJob(q.ctx, q.job, q.handlers)
 }

@@ -66,7 +66,9 @@ func TestExportWorker(t *testing.T) {
 		err = testing_utils.CheckFileSystemPathExistance(pendingJobFileSystem, ".", true)
 		So(err, ShouldBeNil)
 
-		err = worker.runJob(jobCtx, job)
+		//TODO: Should test scenario where event handlers get used inside worker
+		var handlers Handlers
+		err = worker.runJob(jobCtx, job, handlers)
 		So(err, ShouldBeNil)
 
 		err = testing_utils.CheckFileSystemPathExistance(pendingJobFileSystem, ".", false)

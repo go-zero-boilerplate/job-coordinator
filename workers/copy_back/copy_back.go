@@ -12,7 +12,7 @@ import (
 )
 
 type Worker interface {
-	DoJob(ctx *context.Context, job Job) error
+	DoJob(ctx *context.Context, job Job, handlers Handlers) error
 }
 
 func NewWorker() Worker {
@@ -69,7 +69,7 @@ func (c *copyBack) moveCompletedToOld(jobCtx *jobContext) error {
 	return nil
 }
 
-func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
+func (c *copyBack) runJob(jobCtx *jobContext, job Job, handlers Handlers) error {
 	var err error
 	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
@@ -90,7 +90,8 @@ func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
 		fullRemotePath := filepath.Join(jobCtx.remoteJobPath, relRemotePathToDelete)
 		if err := jobCtx.remoteComms.Delete(fullRemotePath); err != nil {
 			jobCtx.logger.WithError(err).WithField("remote-path", fullRemotePath).Error("Cannot delete remote path")
-			//Do not return error, this could be mitigated by the user or admin later on
+			handlers.FailedToCleanupRemotePathBeforeCopyBack(err, fullRemotePath)
+			//Do not return error, we are able to continue
 		}
 	}
 
@@ -103,7 +104,8 @@ func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
 	//Cleanup the remote dir after successfully copying back
 	if err = jobCtx.remoteComms.Delete(jobCtx.remoteJobPath); err != nil {
 		jobCtx.logger.WithError(err).Error("Cannot remove remote job dir")
-		//Do not return error, this could be mitigated by the user or admin later on
+		handlers.FailedToRemoveRemoteJobDir(err, jobCtx.remoteJobPath)
+		//Do not return error, we are able to continue
 	} else {
 		jobCtx.logger.Info("Successfully deleted remote job dir")
 	}
@@ -111,7 +113,7 @@ func (c *copyBack) runJob(jobCtx *jobContext, job Job) error {
 	return nil
 }
 
-func (c *copyBack) DoJob(ctx *context.Context, job Job) error {
+func (c *copyBack) DoJob(ctx *context.Context, job Job, handlers Handlers) error {
 	completedJobFileSystem := job_helpers.GetJobFileSystem(ctx.CompletedLocalFileSystem, job.Id())
 	oldCompletedJobFileSystem := job_helpers.GetJobFileSystem(ctx.CompletedLocalFileSystem, job.Id()+"_old")
 	jobCtx, err := c.getJobContext(ctx, completedJobFileSystem, oldCompletedJobFileSystem, job)
@@ -119,7 +121,7 @@ func (c *copyBack) DoJob(ctx *context.Context, job Job) error {
 		return fmt.Errorf("Cannot get job context, error: %s", err.Error())
 	}
 
-	if err := c.runJob(jobCtx, job); err != nil {
+	if err := c.runJob(jobCtx, job, handlers); err != nil {
 		return fmt.Errorf("Could not run job, error: %s", err.Error())
 	}
 
