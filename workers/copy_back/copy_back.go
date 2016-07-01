@@ -29,10 +29,10 @@ func (c *copyBack) getJobContext(ctx *context.Context, completedJobFileSystem, o
 	fullCompletedJobPath := afero.FullBaseFsPath(completedJobFileSystem.(*afero.BasePathFs), "")
 	fullOldCompletedJobPath := afero.FullBaseFsPath(oldCompletedJobFileSystem.(*afero.BasePathFs), "")
 
-	remoteFS := hostDetails.RemoteFileSystemFactory().New(job.Id())
+	remoteFS := hostDetails.RemoteFileSystemFactory().New(job.RemoteId())
 	remoteJobPath := remoteFS.GetFullJobDir()
 	logger := ctx.Logger.
-		WithField("phase-id", job.Id()).
+		WithField("remote-id", job.RemoteId()).
 		WithField("local-dir", fullCompletedJobPath).
 		WithField("local-old-dir", fullOldCompletedJobPath).
 		WithField("host", hostDetails.HostName()).
@@ -114,8 +114,8 @@ func (c *copyBack) runJob(jobCtx *jobContext, job Job, handlers Handlers) error 
 }
 
 func (c *copyBack) DoJob(ctx *context.Context, job Job, handlers Handlers) error {
-	completedJobFileSystem := job_helpers.GetJobFileSystem(ctx.CompletedLocalFileSystem, job.Id())
-	oldCompletedJobFileSystem := job_helpers.GetJobFileSystem(ctx.CompletedLocalFileSystem, job.Id()+"_old")
+	completedJobFileSystem := job_helpers.GetJobFileSystem(ctx.CompletedLocalFileSystem, job.LocalId())
+	oldCompletedJobFileSystem := job_helpers.GetJobFileSystem(ctx.CompletedLocalFileSystem, job.LocalId()+"_old")
 	jobCtx, err := c.getJobContext(ctx, completedJobFileSystem, oldCompletedJobFileSystem, job)
 	if err != nil {
 		return fmt.Errorf("Cannot get job context, error: %s", err.Error())
