@@ -37,43 +37,47 @@ func (p *postProcessing) getJobContext(ctx *context.Context, completedJobFileSys
 	return jobCtx, nil
 }
 
-func (p *postProcessing) runJob(jobCtx *jobContext, job Job) (*Result, error) {
+func (p *postProcessing) runJob(jobCtx *jobContext, job Job) (result *Result) {
 	var err error
 	defer jobCtx.logger.TraceDebug("Starting job").StopDebug(&err)
 
-	exitedDtoContent, err := afero.ReadFile(jobCtx.completedJobFileSystem, jobCtx.exitedRelativePath)
-	if err != nil {
-		jobCtx.logger.WithError(err).WithField("exit-file", jobCtx.exitedRelativePath).Error("Cannot read exit file")
-		return nil, err
-	}
-
-	exitedDto := &exec_logger_dtos.ExitStatusDto{}
-	if unmarshalError := json.Unmarshal(exitedDtoContent, exitedDto); unmarshalError != nil {
-		jobCtx.logger.WithError(unmarshalError).WithField("exit-file", jobCtx.exitedRelativePath).Error("Cannot unmarshal exit file json")
-		return nil, unmarshalError
-	}
-
-	localContextContent, err := afero.ReadFile(jobCtx.completedJobFileSystem, jobCtx.localContextRelativePath)
-	if err != nil {
-		jobCtx.logger.WithError(err).WithField("context-file", jobCtx.localContextRelativePath).Error("Cannot read local-context file")
-		return nil, err
-	}
-
-	localContext := &exec_logger_dtos.LocalContextDto{}
-	if unmarshalError := json.Unmarshal(localContextContent, localContext); unmarshalError != nil {
-		jobCtx.logger.WithError(unmarshalError).WithField("context-file", jobCtx.localContextRelativePath).Error("Cannot unmarshal local-context file json")
-		return nil, unmarshalError
-	}
-
-	result := &Result{
+	result = &Result{
 		completedJobFileSystem:    jobCtx.completedJobFileSystem,
 		logRelativePath:           jobCtx.logRelativePath,
 		resourceUsageRelativePath: jobCtx.resourceUsageRelativePath,
-		exitStatus:                exitedDto,
-		localContext:              localContext,
 	}
 
-	return result, nil
+	if exitedDtoContent, tmpErr := afero.ReadFile(jobCtx.completedJobFileSystem, jobCtx.exitedRelativePath); tmpErr != nil {
+		jobCtx.logger.WithError(tmpErr).WithField("exit-file", jobCtx.exitedRelativePath).Error("Cannot read exit file")
+		result.appendError(tmpErr)
+		err = tmpErr
+	} else {
+		exitedDto := &exec_logger_dtos.ExitStatusDto{}
+		if unmarshalError := json.Unmarshal(exitedDtoContent, exitedDto); unmarshalError != nil {
+			jobCtx.logger.WithError(unmarshalError).WithField("exit-file", jobCtx.exitedRelativePath).Error("Cannot unmarshal exit file json")
+			result.appendError(unmarshalError)
+			err = unmarshalError
+		} else {
+			result.exitStatus = exitedDto
+		}
+	}
+
+	if localContextContent, tmpErr := afero.ReadFile(jobCtx.completedJobFileSystem, jobCtx.localContextRelativePath); tmpErr != nil {
+		jobCtx.logger.WithError(tmpErr).WithField("context-file", jobCtx.localContextRelativePath).Error("Cannot read local-context file")
+		result.appendError(tmpErr)
+		err = tmpErr
+	} else {
+		localContext := &exec_logger_dtos.LocalContextDto{}
+		if unmarshalError := json.Unmarshal(localContextContent, localContext); unmarshalError != nil {
+			jobCtx.logger.WithError(unmarshalError).WithField("context-file", jobCtx.localContextRelativePath).Error("Cannot unmarshal local-context file json")
+			result.appendError(unmarshalError)
+			err = unmarshalError
+		} else {
+			result.localContext = localContext
+		}
+	}
+
+	return
 }
 
 func (p *postProcessing) DoJob(ctx *context.Context, job Job) (*Result, error) {
@@ -83,10 +87,5 @@ func (p *postProcessing) DoJob(ctx *context.Context, job Job) (*Result, error) {
 		return nil, fmt.Errorf("Cannot get job context, error: %s", err.Error())
 	}
 
-	if result, err := p.runJob(jobCtx, job); err != nil {
-		jobCtx.logger.WithError(err).Error("Could not run job")
-		return nil, fmt.Errorf("Could not run job, error: %s", err.Error())
-	} else {
-		return result, nil
-	}
+	return p.runJob(jobCtx, job), nil
 }

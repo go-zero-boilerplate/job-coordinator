@@ -11,11 +11,24 @@ import (
 )
 
 type Result struct {
+	errors                    []string
 	completedJobFileSystem    afero.Fs
 	logRelativePath           string
 	resourceUsageRelativePath string
 	exitStatus                *exec_logger_dtos.ExitStatusDto
 	localContext              *exec_logger_dtos.LocalContextDto
+}
+
+func (r *Result) appendError(err error) {
+	r.errors = append(r.errors, err.Error())
+}
+
+func (r *Result) HasErrors() bool {
+	return len(r.errors) > 0
+}
+
+func (r *Result) Errors() []string {
+	return r.errors
 }
 
 func (r *Result) JobFileSystem() afero.Fs {

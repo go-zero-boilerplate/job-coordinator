@@ -124,15 +124,25 @@ func TestExportWorker(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		//First the failure case where exited file does not exist
-		result, err := worker.runJob(jobCtx, job)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "The system cannot find the file specified")
+		result := worker.runJob(jobCtx, job)
+		So(result.HasErrors(), ShouldBeTrue)
+		expectedErrCnt := 2
+		if len(result.Errors()) != expectedErrCnt {
+			So(fmt.Errorf("Results error count should be %d (was %d). Errors was: %+v", expectedErrCnt, len(result.Errors()), result.errors), ShouldBeNil)
+		}
+		exitedJSONFileName := "exited.json"
+		So(result.Errors()[0], ShouldContainSubstring, "The system cannot find the file specified")
+		So(result.Errors()[0], ShouldContainSubstring, exitedJSONFileName)
+		localContextFileName := "local-context.json"
+		So(result.Errors()[1], ShouldContainSubstring, "The system cannot find the file specified")
+		So(result.Errors()[1], ShouldContainSubstring, localContextFileName)
 
 		expectation := testing_utils.LogExpectation{
-			LineCount: 2,
+			LineCount: 3,
 			Lines: []testing_utils.ExpectedLine{
 				testing_utils.ExpectedLine{Index: 0, Error: true, RequiredSubstrings: []string{"Cannot read exit file"}},
-				testing_utils.ExpectedLine{Index: 1, Error: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
+				testing_utils.ExpectedLine{Index: 1, Error: true, RequiredSubstrings: []string{"Cannot read local-context file"}},
+				testing_utils.ExpectedLine{Index: 2, Error: true, RequiredSubstrings: []string{"Starting job"}}, //This is the deferred Trace-Stop log
 			},
 		}
 
@@ -147,8 +157,8 @@ func TestExportWorker(t *testing.T) {
 		err = job.createTempLocalContextFile()
 		So(err, ShouldBeNil)
 
-		result, err = worker.runJob(jobCtx, job)
-		So(err, ShouldBeNil)
+		result = worker.runJob(jobCtx, job)
+		So(result.HasErrors(), ShouldBeFalse)
 		So(result.completedJobFileSystem, ShouldNotBeNil)
 		So(result.logRelativePath, ShouldNotBeEmpty)
 
