@@ -107,7 +107,11 @@ RETRY_ON_ALIVE_ERROR:
 	if err != nil {
 		aliveErrCounter.Inc()
 
-		jobCtx.logger.WithError(err).Warn("Consecutive alive error %d/%d", aliveErrCounter.current, aliveErrCounter.max)
+		if aliveErrCounter.CapReached() {
+			jobCtx.logger.WithError(err).Warn("Consecutive alive error %d/%d", aliveErrCounter.current, aliveErrCounter.max)
+		} else {
+			jobCtx.logger.WithError(err).Info("Consecutive alive error %d/%d", aliveErrCounter.current, aliveErrCounter.max)
+		}
 
 		if aliveErrCounter.CapReached() {
 			notifyMessage := fmt.Sprintf("Failed too many times checking if alive (%d/%d)", aliveErrCounter.current, aliveErrCounter.max)
